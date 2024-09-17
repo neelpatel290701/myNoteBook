@@ -32,8 +32,6 @@ router.post('/addnote', fetchUser , [
         }
 
         const {title , description , tag} = req.body ;
-
-        console.log(req.user.id)
       
         const notes = new Note({
             title , description , tag , userid : req.user.id
@@ -48,8 +46,6 @@ router.post('/addnote', fetchUser , [
     }
 })
 
-
-
 //ROUTE - 3 UPDATE Note
 router.put('/updatenote/:id' , fetchUser , async (req,res)=>{
 
@@ -61,17 +57,42 @@ router.put('/updatenote/:id' , fetchUser , async (req,res)=>{
         if(tag) {newNote.tag = tag};
 
 
+        try{
+            let note = await Note.findById(req.params.id) ;
+            if(!note) return res.status(404).send("Note Not Found") ;
+
+            if(note.userid.toString() !== req.user.id){
+                return res.status(401).send("Not Allowed")
+            }
+
+            note = await Note.findByIdAndUpdate(req.params.id ,{$set : newNote},{new:true});
+            res.json(note) ;
+        }catch(err){
+            res.status(400).send("Internal Server Error")
+        }   
+
+})
+
+//ROUTE - 4 DELETE Note
+router.delete('/deletenote/:id' , fetchUser , async (req,res)=>{
+
+    try{
         let note = await Note.findById(req.params.id) ;
-        if(!note) return res.status(404).send("Note Not Found") ;
+        if(!note) return res.status(404).send("Not Found") ;
 
         if(note.userid.toString() !== req.user.id){
             return res.status(401).send("Not Allowed")
         }
 
-        note = await Note.findByIdAndUpdate(req.params.id ,{$set : newNote},{new:true});
-        res.json(note) ;
+        note = await Note.findByIdAndDelete(req.params.id);
+        res.json({success : "Note Deleteted" , note : note})
 
+   }catch(err){
+        res.status(400).send("Internal Server Error")
+   }
 })
+
+
 
 
 module.exports = router
